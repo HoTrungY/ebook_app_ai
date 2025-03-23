@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../view_models/auth_view_model.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({Key? key}) : super(key: key);
@@ -21,6 +22,8 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   Future<void> _handleLogin() async {
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -31,26 +34,41 @@ class _WelcomePageState extends State<WelcomePage> {
       return;
     }
 
-    // Lưu trạng thái đăng nhập
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', true);
-
-    // Thông báo thành công
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đăng nhập thành công'),
-        backgroundColor: Colors.green,
-      ),
+    final success = await authViewModel.login(
+      _usernameController.text,
+      _passwordController.text,
     );
 
-    // Quay lại màn hình trước đó
     if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đăng nhập thành công'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authViewModel.errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Xử lý khi người dùng hủy bỏ đăng nhập
+  void _handleCancel() {
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final authViewModel = Provider.of<AuthViewModel>(context);
+    
     return Scaffold(
       body: Stack(
         children: [
@@ -58,28 +76,32 @@ class _WelcomePageState extends State<WelcomePage> {
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
+                image: const AssetImage('assets/images/background.jpg'),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
                   Colors.black.withOpacity(0.7),
                   BlendMode.darken,
                 ),
-                image: const AssetImage('assets/images/pic_login.png'),
               ),
             ),
           ),
-
+          
           // Dark overlay at bottom
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             height: MediaQuery.of(context).size.height / 2,
-            child: Container(color: Colors.black),
+            child: Container(
+              color: Colors.black,
+            ),
           ),
-
+          
           // Content
           SafeArea(
-            child: isWelcomePage ? _buildWelcomePage() : _buildLoginPage(),
+            child: authViewModel.isLoading
+                ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
+                : isWelcomePage ? _buildWelcomePage() : _buildLoginPage(),
           ),
         ],
       ),
@@ -155,12 +177,12 @@ class _WelcomePageState extends State<WelcomePage> {
             ),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: _handleCancel,
               child: Text(
                 'Hủy bỏ',
-                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                ),
               ),
             ),
           ],
@@ -170,6 +192,8 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   Widget _buildLoginPage() {
+    final authViewModel = Provider.of<AuthViewModel>(context);
+    
     return SingleChildScrollView(
       child: Center(
         child: Padding(
@@ -213,19 +237,14 @@ class _WelcomePageState extends State<WelcomePage> {
                   labelText: 'Tên đăng nhập/Số điện thoại',
                   labelStyle: TextStyle(color: Colors.white.withOpacity(0.8)),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.white.withOpacity(0.3),
-                    ),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.blue),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
               ),
               const SizedBox(height: 24),
@@ -238,19 +257,14 @@ class _WelcomePageState extends State<WelcomePage> {
                   labelText: 'Mật khẩu',
                   labelStyle: TextStyle(color: Colors.white.withOpacity(0.8)),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.white.withOpacity(0.3),
-                    ),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.blue),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
               ),
               const SizedBox(height: 32),
@@ -259,21 +273,23 @@ class _WelcomePageState extends State<WelcomePage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _handleLogin,
+                  onPressed: authViewModel.isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'ĐĂNG NHẬP',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: authViewModel.isLoading
+                      ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+                      : const Text(
+                          'ĐĂNG NHẬP',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -287,7 +303,9 @@ class _WelcomePageState extends State<WelcomePage> {
                     },
                     child: Text(
                       'Đăng ký ngay',
-                      style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                      ),
                     ),
                   ),
                   TextButton(
@@ -296,7 +314,9 @@ class _WelcomePageState extends State<WelcomePage> {
                     },
                     child: Text(
                       'Quên mật khẩu?',
-                      style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                      ),
                     ),
                   ),
                 ],
