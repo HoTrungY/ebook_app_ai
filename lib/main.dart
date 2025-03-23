@@ -1,7 +1,7 @@
-import 'package:ebook_app/views/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'pages/splash_page.dart';
 import 'view_models/auth_view_model.dart';
 import 'view_models/book_view_model.dart';
 
@@ -35,8 +35,16 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: true,
           fontFamily: 'Roboto',
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            systemOverlayStyle: SystemUiOverlayStyle.dark,
+          ),
+          scaffoldBackgroundColor: Colors.white,
         ),
-        home: const HomePage(),
+        home: const SplashPage(),
       ),
     );
   }

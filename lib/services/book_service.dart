@@ -3,6 +3,7 @@ import 'package:ebook_app/models/book_model.dart';
 import 'package:http/http.dart' as http;
 import '../models/book.dart';
 
+
 class BookService {
   static const String _baseUrl = 'https://waka-api.example.com/api'; // Mock API endpoint
 

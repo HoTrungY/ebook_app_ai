@@ -24,8 +24,7 @@ class BookViewModel extends ChangeNotifier {
   // Load featured books
   Future<void> loadFeaturedBooks() async {
     _setLoading(true);
-    try {
-    } catch (e) {
+    try {} catch (e) {
       _errorMessage = 'Không thể tải sách nổi bật: $e';
     } finally {
       _setLoading(false);
@@ -33,7 +32,7 @@ class BookViewModel extends ChangeNotifier {
   }
 
   // Load books by category
-  Future<List<Book>> loadBooksByCategory(String categoryId) async {
+  Future<List> loadBooksByCategory(String categoryId) async {
     _setLoading(true);
     try {
       final books = await _bookService.getBooksByCategory(categoryId);
